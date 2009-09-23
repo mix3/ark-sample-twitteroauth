@@ -33,6 +33,9 @@ sub make_tweet :Local :Args(0) {
     my $client = $c->model('Twitter');
     $client->oauth->access_token( $access_token );
     $client->oauth->access_token_secret( $access_token_secret );
+    
+    $c->redirect_and_detach( $c->uri_for('/require_auth') )
+        unless(defined $client->verify_credentials);
 
     my $status = join '', shuffle(split //, 'うんこ');
     $client->update({ status => $status });
@@ -56,8 +59,6 @@ sub twitter_auth_callback :Local :Args(0) {
     my $request_token        = $c->session->get('request_token');
     my $request_token_secret = $c->session->get('request_token_secret');
     my $verifier             = $c->req->param('oauth_verifier');
-    
-    warn $verifier, "\n";
     
     $c->detach( $c->uri_for('/default') )
         unless $request_token && $request_token_secret;
