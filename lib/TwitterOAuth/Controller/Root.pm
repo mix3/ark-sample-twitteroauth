@@ -1,6 +1,8 @@
 package TwitterOAuth::Controller::Root;
 use Ark 'Controller';
 
+use Data::Dumper;
+
 has '+namespace' => default => '';
 
 # default 404 handler
@@ -40,8 +42,8 @@ sub twitter_authorize :Local :Args(0) {
     my ($self, $c) = @_;
 
     my $client = $c->model('Twitter');
-    my $url    = $client->oauth->get_authorization_url;
-
+    my $url    = $client->oauth->get_authorization_url(callback => $c->uri_for('/twitter_auth_callback'));
+    
     $c->session->set( request_token => $client->oauth->request_token );
     $c->session->set( request_token_secret => $client->oauth->request_token_secret );
 
@@ -53,7 +55,10 @@ sub twitter_auth_callback :Local :Args(0) {
 
     my $request_token        = $c->session->get('request_token');
     my $request_token_secret = $c->session->get('request_token_secret');
-
+    my $verifier             = $c->req->param('oauth_verifier');
+    
+    warn $verifier, "\n";
+    
     $c->detach( $c->uri_for('/default') )
         unless $request_token && $request_token_secret;
 
@@ -61,7 +66,7 @@ sub twitter_auth_callback :Local :Args(0) {
     $client->oauth->request_token( $request_token );
     $client->oauth->request_token_secret( $request_token_secret );
 
-    my ($access_token, $access_token_secret) = $client->oauth->request_access_token;
+    my ($access_token, $access_token_secret) = $client->oauth->request_access_token(verifier => $verifier);
     $c->session->set( access_token => $access_token );
     $c->session->set( access_token_secret => $access_token_secret );
 
